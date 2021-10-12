@@ -38,7 +38,7 @@ rios <-
 #### Exploración de los datos 
 
 ```{r despliegue-datos-rios}
-slice_head(rios, n = 10)
+#slice_head(rios, n = 10)
 ```
 
 #### Ajuste nombre de las columnas 
@@ -116,7 +116,7 @@ covid <-
 ### Exploración de datos covid
 
 ```{r}
-slice_head(covid, n = 10)
+#slice_head(covid, n = 10)
 ```
 
 #### Filtrado de datos para el histograma
@@ -151,7 +151,7 @@ covid_01 %>%
 #### Exploración de datos covid
 
 ```{r}
-slice_head(covid, n = 10)
+#slice_head(covid, n = 10)
 ```
 
 #### Filtrado de datos para el gráfico de barras 
@@ -167,11 +167,24 @@ covid_02<- covid %>%
 slice_head(covid_02, n = 10)
 ```
 
+#### creacción de datos por día 
+
+```{r extracción de acumulados}
+#se resta a cada dato el dato de la fecha anterior 
+
+covid_05<-covid_02%>%
+  rename(m=mujeres_fallecidas,
+         n=hombres_fallecidos)%>%
+  mutate(mujeres = m - lag(m,default = first(m)), hombres = n - lag(n,default = first(n)))
+         
+slice_head(covid_05, n = 10)
+```
+
 #### Conversión datos de fecha
 
 ```{r transformacion-fecha-covid_02}
-covid_03<-covid_02 %>%
-  mutate (fecha = as.Date(fecha, format = "%m/%d/%Y"))
+covid_03<-covid_05 %>%
+  mutate (fecha = as.Date(fecha, format = "%d/%m/%Y"))
        
 slice_head(covid_03, n = 10)
 ```
@@ -182,8 +195,8 @@ slice_head(covid_03, n = 10)
 covid_04<-covid_03%>%
   group_by(anio = format(fecha,"%Y"),mes = format(fecha, "%m")) %>%
   summarise(
-    suma_mujeres_fall = sum(mujeres_fallecidas),
-    suma_hombres_fall = sum(hombres_fallecidos)
+    suma_mujeres_fall = sum(mujeres),
+    suma_hombres_fall = sum(hombres)
   )
 
 slice_head(covid_04, n = 10)
@@ -196,8 +209,7 @@ covid_fallecidos<-covid_04%>%
   rename(
     mujeres = suma_mujeres_fall,
     hombres = suma_hombres_fall) %>%
-  pivot_longer(c("mujeres","hombres"), names_to = "sexo",values_to = "fallecidos")%>%
-  filter(mes != "NA")
+  pivot_longer(c("mujeres","hombres"), names_to = "sexo",values_to = "fallecidos")
 
 slice_head(covid_fallecidos, n = 10)
 ```
@@ -208,25 +220,35 @@ slice_head(covid_fallecidos, n = 10)
 covid_fallecidos%>%
   filter(anio == "2020")%>%
   ggplot(aes(x = fallecidos, y = mes, fill = sexo)) +
-  ggtitle("Acumulados fallecidos de Covid-19 según sexo por mes del año, 2020") +
+  ggtitle("Fallecidos de Covid-19 según sexo por mes del año, 2020") +
   ylab("Mes del año") +
-  xlab("Número de fallecidos acumulados ") +
+  xlab("Número de fallecidos") +
   geom_col(position = "dodge") +
   coord_flip()
 ```
 
 #### Creación de gráfico de barras agrupado para 2021
 
-```{r gráfico_barras-agrupados-covid-fallecidos-2021}
+```{r gráfico_barras-agrupados-covid-fallecidos}
 covid_fallecidos%>%
   filter(anio == "2021")%>%
   ggplot(aes(x = fallecidos, y = mes, fill = sexo)) +
-  ggtitle("Acumulados fallecidos de Covid-19 según sexo por mes del año, 2021") +
+  ggtitle("Fallecidos de Covid-19 según sexo por mes del año, 2021") +
   ylab("Mes del año") +
-  xlab("Número de fallecidos acumulados ") +
+  xlab("Número de fallecidos") +
   geom_col(position = "dodge") +
   coord_flip()
 ```
 
+#### Creación de gráfico de barras agrupado para todo el periodo
 
+```{r gráfico_barras-agrupados-covid-fallecidos-2021}
+covid_fallecidos%>%
+  ggplot(aes(x = fallecidos, y = mes, fill = sexo)) +
+  ggtitle("Fallecidos de Covid-19 según sexo por mes del año, 2020-2021") +
+  ylab("Mes del año") +
+  xlab("Número de fallecidos") +
+  geom_col(position = "dodge") +
+  coord_flip()
+```
 
