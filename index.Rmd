@@ -1,0 +1,232 @@
+---
+title: "Tarea_2_Prog_R_MGM"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Tarea 2 Mauricio Guevara Murillo 
+
+### Graficación y uso de herramientas de Tidyverse
+
+#### Carga de las librerias
+
+```{r librerias,message = FALSE}
+# dplyr
+library(dplyr)
+# ggplot2
+library(ggplot2)
+# Carga de plotly
+library(plotly)
+# Carga de graphics
+library(graphics)
+library(tidyverse)
+```
+
+### Ejercicio 1: 
+#### Gráfico de barras apiladas que muestre el caudal de los ríos Pandora y Bananito por cada uno de los 12 meses del año.
+
+#### Carga de datos desde el archivo csv
+```{r carga-datos-rios}
+rios <- 
+  rios <-
+  read.csv(file = 'https://raw.githubusercontent.com/tpb728O-programaciongeoespacialr/2021ii/main/datos/hidrologia/fdc/fdc.csv')
+```
+
+#### Exploración de los datos 
+
+```{r despliegue-datos-rios}
+slice_head(rios, n = 10)
+```
+
+#### Ajuste nombre de las columnas 
+
+```{r ajuste-datos_columnas_rios}
+# Cambio nombre de las columnas mediante rename 
+rios_01 <- rios %>% 
+  rename(fecha = Tiempo,
+         pandora = Pandora.mm..637km2.,
+         bananito = Banano.mm..90km2.)
+  
+slice_head(rios_01, n = 10)
+
+```
+
+#### Ajuste datos de fecha
+
+```{r ajuste-fecha_rios01}
+# Cambio nombre de las columnas mediante rename 
+rios_02 <- rios_01 %>% 
+  mutate(fecha = as.Date(fecha, format ="%m/%d/%Y"))
+  
+slice_head(rios_02, n = 10)
+
+```
+
+#### Agrupación de datos por mes 
+
+```{r agrupacion_datos_rios_mes}
+
+caudal_rios_x_mes <- rios_02 %>%
+  select(fecha, pandora, bananito)%>%
+  group_by(mes = format(fecha, "%m"))%>%
+  summarise(pandora = sum(pandora), bananito = sum(bananito))
+
+slice_head(caudal_rios_x_mes, n = 12)
+
+```
+
+#### Organización de datos en forma normal 
+
+```{r}
+rios_03<-caudal_rios_x_mes%>%
+  pivot_longer(c("pandora","bananito"), names_to = "rio",values_to = "caudal")
+
+slice_head(rios_03, n = 24)
+```
+
+#### Creación del gráfico
+
+```{r gráfico_barras-apiladas-rios}
+rios_03%>%
+  ggplot(aes(x = caudal, y = mes, fill = rio)) +
+  ggtitle("Caudal de los ríos por mes") +
+  ylab("Mes de año") +
+  xlab("Caudal acumulado") +
+  geom_col() +
+  coord_flip()
+```
+
+### Ejercicio 2: 
+#### Histograma que muestre la distribución de los casos nuevos de covid en Costa Rica. Elija cuidadosamente el tamaño de los “bins”.
+
+#### Carga de datos desde el archivo csv.
+
+```{r carga-datos-covid}
+#datos covid
+covid <- 
+  read.csv(
+    file='https://raw.githubusercontent.com/tpb728O-programaciongeoespacialr/2021ii/main/datos/minsalud/covid/ultimafecha_CSV_GENERAL.csv', 
+    sep = ","
+  )
+```
+
+### Exploración de datos covid
+
+```{r}
+slice_head(covid, n = 10)
+```
+
+#### Filtrado de datos para el histograma
+
+```{r}
+covid_01<- covid %>%
+  select(FECHA, nue_posi) %>%
+  rename(
+    fecha = FECHA,
+    nuevos = nue_posi) 
+
+slice_head(covid_01, n = 10)
+
+```
+
+#### Creación de Histograma 
+
+```{r histograma }
+covid_01 %>%
+  ggplot(aes(x = nuevos)) +
+  geom_histogram(binwidth = 30,
+                 color = "black",
+                 fill = "white") +
+  ggtitle("Distribución de frecuencia de los casos nuevos de covid x día") +
+  xlab("Casos nuevos") +
+  ylab("Frecuencia") 
+```
+
+### Ejercicio 3: 
+#### Gráfico de barras agrupadas que muestre la cantidad de hombres y mujeres fallecidos por covid en Costa Rica por cada uno de los 12 meses del año.
+
+#### Exploración de datos covid
+
+```{r}
+slice_head(covid, n = 10)
+```
+
+#### Filtrado de datos para el gráfico de barras 
+
+```{r filtrado-hom-muj-fallecidos}
+covid_02<- covid %>%
+  select(FECHA, muj_fall, hom_fall) %>%
+  rename(
+    fecha = FECHA,
+    mujeres_fallecidas = muj_fall,
+    hombres_fallecidos = hom_fall) 
+
+slice_head(covid_02, n = 10)
+```
+
+#### Conversión datos de fecha
+
+```{r transformacion-fecha-covid_02}
+covid_03<-covid_02 %>%
+  mutate (fecha = as.Date(fecha, format = "%m/%d/%Y"))
+       
+slice_head(covid_03, n = 10)
+```
+
+#### Agrupacion x mes
+
+```{r hom-muj-fall-x-mes}
+covid_04<-covid_03%>%
+  group_by(anio = format(fecha,"%Y"),mes = format(fecha, "%m")) %>%
+  summarise(
+    suma_mujeres_fall = sum(mujeres_fallecidas),
+    suma_hombres_fall = sum(hombres_fallecidos)
+  )
+
+slice_head(covid_04, n = 10)
+```
+
+#### conversión de datos a tercera forma normal
+
+```{r datos_normalizados-fallecidos}
+covid_fallecidos<-covid_04%>%
+  rename(
+    mujeres = suma_mujeres_fall,
+    hombres = suma_hombres_fall) %>%
+  pivot_longer(c("mujeres","hombres"), names_to = "sexo",values_to = "fallecidos")%>%
+  filter(mes != "NA")
+
+slice_head(covid_fallecidos, n = 10)
+```
+
+#### Creación de gráfico de barras agrupado para 2020
+
+```{r gráfico_barras-agrupados-covid-fallecidos-2020}
+covid_fallecidos%>%
+  filter(anio == "2020")%>%
+  ggplot(aes(x = fallecidos, y = mes, fill = sexo)) +
+  ggtitle("Acumulados fallecidos de Covid-19 según sexo por mes del año, 2020") +
+  ylab("Mes del año") +
+  xlab("Número de fallecidos acumulados ") +
+  geom_col(position = "dodge") +
+  coord_flip()
+```
+
+#### Creación de gráfico de barras agrupado para 2021
+
+```{r gráfico_barras-agrupados-covid-fallecidos-2021}
+covid_fallecidos%>%
+  filter(anio == "2021")%>%
+  ggplot(aes(x = fallecidos, y = mes, fill = sexo)) +
+  ggtitle("Acumulados fallecidos de Covid-19 según sexo por mes del año, 2021") +
+  ylab("Mes del año") +
+  xlab("Número de fallecidos acumulados ") +
+  geom_col(position = "dodge") +
+  coord_flip()
+```
+
+
+
